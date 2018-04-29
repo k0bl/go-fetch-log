@@ -20,9 +20,9 @@ var logf *os.File
 
 func main() {
     flag.Parse()
-    fmt.Println(*bookmarkfile)
-    fmt.Println(*logfile)
-    fmt.Println(*regexpr)
+    // fmt.Println(*bookmarkfile)
+    // fmt.Println(*logfile)
+    // fmt.Println(*regexpr)
     var lastpos int = 0
     //check if we have a logfile
     if _, err := os.Stat(*logfile); err == nil {
@@ -32,30 +32,35 @@ func main() {
         defer fileHandle.Close()
         //check if we have a bookmark file
         if _, bmerr := os.Stat(*bookmarkfile); bmerr == nil {
-
-            fmt.Println("Attempting to open bookmark file")
             //open bookmark file
             bookmarkFileHandle, _ := os.Open(*bookmarkfile)
             defer bookmarkFileHandle.Close()
             //find last position from bookmark in log file
             bmScan := bufio.NewScanner(bookmarkFileHandle)
             for bmScan.Scan() {
-                fmt.Println("bmScan", bmScan.Text())
                 innerlastpos, bmscanerr := strconv.Atoi(bmScan.Text())
                 if bmscanerr != nil {
                     fmt.Println("Error: ", bmscanerr)
                 }
-                fmt.Println("lastpos", lastpos  )
                 lastpos = lastpos + innerlastpos
             }
-            fmt.Println("lastpos outside", lastpos)
-            fmt.Println("bookmarkfile, starting from marked position")
+
             if lastpos > 0 {
-                /* There was a bookmark file with a value greater than 0
-                 store last position and process file from last position */
-                processedLen = lastpos
-                fmt.Println("Pre-existing offset found", processedLen)
-                processFileFromLastPosition(lastpos)
+                //check if length of file is greater than lastpos
+                checkFile, ckfierr := fileHandle.Stat()
+                if ckfierr != nil {
+                    // Could not obtain stat, handle error
+                }
+                //check if file size is greater than bookmark
+                if checkFile.Size() >= int64(lastpos) {
+                    //file size equal or greater, log has not rotated
+                    //start from last position
+                    processedLen = lastpos
+                    processFileFromLastPosition(lastpos)
+                } else {
+                    //file size is smaller, log rotated. start from beginning
+                    processFileFromStartPosition(0)
+                }
             } else {
                 //lastpos is 0, process file from start position
                 processFileFromStartPosition(0)
@@ -64,6 +69,7 @@ func main() {
             //bookmark file does not exist, process file from start position
             processFileFromStartPosition(0)
         }
+        os.Exit(0)
     } else {
         fmt.Printf("log file %s does not exist.\n", *logfile)
         flag.PrintDefaults()
@@ -75,24 +81,26 @@ func processFileFromStartPosition(lastpos int) {
     for fileScanner.Scan() {
         // pass each line to checkRegex
         checkRegEx(fileScanner.Text())
-        processedLen = processedLen + (len(fileScanner.Text())+2)
+        // add 1 for trailing whitespace, need a better solution
+        processedLen = processedLen + (len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
 }
 func processFileFromLastPosition(lastpos int) {
     var offset int64 = int64(lastpos)
-    fmt.Println("offset", offset)
     var whence int = 0
+    //seek to new position in log file
     newPosition, poserr := logf.Seek(offset, whence)
     if poserr != nil {
+        fmt.Println("Attempted to seek to: ", newPosition)
         fmt.Println("Error: ", poserr)
     }
-    fmt.Println("Just moved to:", newPosition)
     fileScanner := bufio.NewScanner(logf)
     for fileScanner.Scan() {
         //pass each line to checkRegex
         checkRegEx(fileScanner.Text())
-        processedLen = (processedLen + len(fileScanner.Text())+2)
+        // add 1 for trailing whitespace, need a better solution
+        processedLen = processedLen + (len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
 }
@@ -103,16 +111,13 @@ func checkRegEx(text string) {
     }
 }
 func updateBookmarkFile(processedLen int) {
-    fmt.Println("updateBookmarkFile processedLen", processedLen)
-    // err := os.Truncate(*bookmarkfile, 0)
-    // if err != nil {
-    //     fmt.Println(err)
-    // }
+    //create new bm file every time, wipe out old
     bookmarkFileHandle, werr := os.Create(*bookmarkfile)
     if werr != nil {
         fmt.Println("Cannot write file", werr)
     }
     defer bookmarkFileHandle.Close()        
     bmString := strconv.Itoa(processedLen)
+    //write new processedLen to bookmark file
     fmt.Fprintf(bookmarkFileHandle, bmString)
 }
