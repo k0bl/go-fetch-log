@@ -5,7 +5,8 @@ import (
         "os"
         "flag"
         "strconv"
-        "regexp"
+        "strings"
+        // "regexp"
 )
 var bookmarkfilemsg = "bookmark file where we store log file position"
 var regexmsg = "regexp to search in log file since last run"
@@ -105,10 +106,20 @@ func processFileFromLastPosition(lastpos int) {
     updateBookmarkFile(processedLen)
 }
 func checkRegEx(text string) {
-    match, _ := regexp.MatchString(*regexpr, text)
-    if match == true {
-        fmt.Println(text)
+    // had to disable regex. Too slow
+    // match, _ := regexp.MatchString(*regexpr, text)
+    // if match == true {
+    //     fmt.Println(text)
+    // }
+
+    //strings.Contains much faster for this purpose
+    stringSlice := strings.Split(*regexpr, "|")
+    for _, v := range stringSlice {       
+        if strings.Contains(text, v) {
+            fmt.Println(text)
+        }
     }
+
 }
 func updateBookmarkFile(processedLen int) {
     //create new bm file every time, wipe out old
