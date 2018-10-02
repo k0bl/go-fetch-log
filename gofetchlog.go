@@ -17,10 +17,10 @@ var bookmarkfile = flag.String("bookmarkfile", "", "")
 var logfile      = flag.String("logfile", "", bookmarkfilemsg)
 var regexpr       = flag.String("regexp", "", regexmsg)
 var count       = flag.Bool("count", false, countmsg)
-var processedLen = 0
+var processedLen int64 = 0
 
 //result counter if we are using count
-var resultCount int = 0
+var resultCount int64 = 0
 
 var logf *os.File
 
@@ -29,7 +29,7 @@ func main() {
     // fmt.Println(*bookmarkfile)
     // fmt.Println(*logfile)
     // fmt.Println(*regexpr)
-    var lastpos int = 0
+    var lastpos int64 = 0
     //check if we have a logfile
     if _, err := os.Stat(*logfile); err == nil {
         //we have a logfile, open and defer close
@@ -44,7 +44,7 @@ func main() {
             //find last position from bookmark in log file
             bmScan := bufio.NewScanner(bookmarkFileHandle)
             for bmScan.Scan() {
-                innerlastpos, bmscanerr := strconv.Atoi(bmScan.Text())
+                innerlastpos, bmscanerr := strconv.ParseInt(bmScan.Text(), 10, 64)
                 if bmscanerr != nil {
                     fmt.Println("Error: ", bmscanerr)
                 }
@@ -82,20 +82,20 @@ func main() {
         os.Exit(2)
     }   
 }
-func processFileFromStartPosition(lastpos int) {
+func processFileFromStartPosition(lastpos int64) {
     fileScanner := bufio.NewScanner(logf)
     for fileScanner.Scan() {
         // pass each line to checkRegex
         checkRegEx(fileScanner.Text())
         // add 1 for trailing whitespace, need a better solution
-        processedLen = processedLen + (len(fileScanner.Bytes())+1)
+        processedLen = processedLen + int64(len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
     if (*count) {
         fmt.Println(resultCount);
     }
 }
-func processFileFromLastPosition(lastpos int) {
+func processFileFromLastPosition(lastpos int64) {
     var offset int64 = int64(lastpos)
     var whence int = 0
     //seek to new position in log file
@@ -109,7 +109,7 @@ func processFileFromLastPosition(lastpos int) {
         //pass each line to checkRegex
         checkRegEx(fileScanner.Text())
         // add 1 for trailing whitespace, need a better solution
-        processedLen = processedLen + (len(fileScanner.Bytes())+1)
+        processedLen = processedLen + int64(len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
     if (*count) {
@@ -136,14 +136,14 @@ func checkRegEx(text string) {
     }
 
 }
-func updateBookmarkFile(processedLen int) {
+func updateBookmarkFile(processedLen int64) {
     //create new bm file every time, wipe out old
     bookmarkFileHandle, werr := os.Create(*bookmarkfile)
     if werr != nil {
         fmt.Println("Cannot write file", werr)
     }
     defer bookmarkFileHandle.Close()        
-    bmString := strconv.Itoa(processedLen)
+    bmString := strconv.FormatInt(processedLen, 10)
     //write new processedLen to bookmark file
     fmt.Fprintf(bookmarkFileHandle, bmString)
 }
