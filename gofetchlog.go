@@ -14,7 +14,6 @@ var lastmsg = "start at the end of the log file if no bookmark file"
 var bookmarkfile = flag.String("bookmarkfile", "", "")
 var logfile      = flag.String("logfile", "", bookmarkfilemsg)
 var regexpr       = flag.String("regexp", "", regexmsg)
-var last         = flag.String("L", "", lastmsg)
 var processedLen = 0
 
 var logf *os.File
