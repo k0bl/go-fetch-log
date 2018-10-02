@@ -11,10 +11,16 @@ import (
 var bookmarkfilemsg = "bookmark file where we store log file position"
 var regexmsg = "regexp to search in log file since last run"
 var lastmsg = "start at the end of the log file if no bookmark file"
+var countmsg = "return a count of matching lines instead of line output"
+
 var bookmarkfile = flag.String("bookmarkfile", "", "")
 var logfile      = flag.String("logfile", "", bookmarkfilemsg)
 var regexpr       = flag.String("regexp", "", regexmsg)
+var count       = flag.Bool("count", false, countmsg)
 var processedLen = 0
+
+//result counter if we are using count
+var resultCount int = 0
 
 var logf *os.File
 
@@ -85,6 +91,9 @@ func processFileFromStartPosition(lastpos int) {
         processedLen = processedLen + (len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
+    if (*count) {
+        fmt.Println(resultCount);
+    }
 }
 func processFileFromLastPosition(lastpos int) {
     var offset int64 = int64(lastpos)
@@ -103,6 +112,9 @@ func processFileFromLastPosition(lastpos int) {
         processedLen = processedLen + (len(fileScanner.Bytes())+1)
     }
     updateBookmarkFile(processedLen)
+    if (*count) {
+        fmt.Println(resultCount);
+    }
 }
 func checkRegEx(text string) {
     // had to disable regex. Too slow
@@ -115,7 +127,11 @@ func checkRegEx(text string) {
     stringSlice := strings.Split(*regexpr, "|")
     for _, v := range stringSlice {       
         if strings.Contains(text, v) {
-            fmt.Println(text)
+            if (*count) {
+                resultCount +=1;
+            } else {
+                fmt.Println(text)
+            }
         }
     }
 
