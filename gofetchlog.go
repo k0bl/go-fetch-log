@@ -43,6 +43,10 @@ func main() {
             defer bookmarkFileHandle.Close()
             //find last position from bookmark in log file
             bmScan := bufio.NewScanner(bookmarkFileHandle)
+            const maxCapacity = 512*1024 
+            buf := make([]byte, maxCapacity)
+            bmScan.Buffer(buf, maxCapacity)
+
             for bmScan.Scan() {
                 innerlastpos, bmscanerr := strconv.ParseInt(bmScan.Text(), 10, 64)
                 if bmscanerr != nil {
@@ -84,11 +88,16 @@ func main() {
 }
 func processFileFromStartPosition(lastpos int64) {
     fileScanner := bufio.NewScanner(logf)
+    //custom buffer for large logs
+    const maxCapacity = 512*1024 
+    buf := make([]byte, maxCapacity)
+    fileScanner.Buffer(buf, maxCapacity)
     for fileScanner.Scan() {
         // pass each line to checkRegex
         checkRegEx(fileScanner.Text())
         // add 1 for trailing whitespace, need a better solution
         processedLen = processedLen + int64(len(fileScanner.Bytes())+1)
+        // fmt.Println("processedLen", processedLen)
     }
     updateBookmarkFile(processedLen)
     if (*count) {
@@ -100,16 +109,21 @@ func processFileFromLastPosition(lastpos int64) {
     var whence int = 0
     //seek to new position in log file
     newPosition, poserr := logf.Seek(offset, whence)
+
     if poserr != nil {
         fmt.Println("Attempted to seek to: ", newPosition)
         fmt.Println("Error: ", poserr)
     }
     fileScanner := bufio.NewScanner(logf)
+    const maxCapacity = 512*1024 
+    buf := make([]byte, maxCapacity)
+    fileScanner.Buffer(buf, maxCapacity)
     for fileScanner.Scan() {
         //pass each line to checkRegex
         checkRegEx(fileScanner.Text())
         // add 1 for trailing whitespace, need a better solution
         processedLen = processedLen + int64(len(fileScanner.Bytes())+1)
+        // fmt.Println("processedLen", processedLen)
     }
     updateBookmarkFile(processedLen)
     if (*count) {
