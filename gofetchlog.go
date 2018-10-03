@@ -8,13 +8,14 @@ import (
         "strings"
         // "regexp"
 )
-var bookmarkfilemsg = "bookmark file where we store log file position"
+var bookmarkfilemsg = "location of bookmark file where we store log file position"
+var logfilemsg = "location of log file to read in"
 var regexmsg = "regexp to search in log file since last run"
 var lastmsg = "start at the end of the log file if no bookmark file"
 var countmsg = "return a count of matching lines instead of line output"
 
-var bookmarkfile = flag.String("bookmarkfile", "", "")
-var logfile      = flag.String("logfile", "", bookmarkfilemsg)
+var bookmarkfile = flag.String("bookmarkfile", "", bookmarkfilemsg)
+var logfile      = flag.String("logfile", "", logfilemsg)
 var regexpr       = flag.String("regexp", "", regexmsg)
 var count       = flag.Bool("count", false, countmsg)
 var processedLen int64 = 0
