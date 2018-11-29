@@ -143,7 +143,7 @@ func processFileFromLastPosition(lastpos int64) {
 }
 func processFile() {
     fileScanner := bufio.NewScanner(logf)
-    const maxCapacity = 512*1024 
+    const maxCapacity = 1024*1024 
     buf := make([]byte, maxCapacity)
     fileScanner.Buffer(buf, maxCapacity)
     for fileScanner.Scan() {
